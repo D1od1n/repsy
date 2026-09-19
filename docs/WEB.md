@@ -439,6 +439,12 @@ Redirect URLs. Musi być dokładnie ten sam adres, łącznie z ukośnikiem na ko
 Włącz „Pokaż dane techniczne" w Ustawieniach. Jeśli `p` nie dochodzi do 1,0
 przy pełnej pompce, zmniejsz `defaultDepth` w `src/core/pushup/stateMachine.ts`.
 
+**Zmiana w `.env` nie działa**
+Metro buforuje wartości zmiennych środowiskowych. `npm run build:web` czyści
+cache sam (`--clear`), ale przy pracy na żywo (`npx expo start --web`) trzeba
+zrestartować serwer z `--clear`. Objaw jest podstępny: build kończy się
+sukcesem, a strona używa **starej** konfiguracji.
+
 **Aplikacja nie proponuje instalacji na Androidzie**
 Chrome pokazuje tę opcję dopiero po kilku wizytach i tylko po HTTPS. Zawsze
 można użyć menu przeglądarki → *Dodaj do ekranu głównego*.

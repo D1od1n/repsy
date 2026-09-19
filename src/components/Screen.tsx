@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Platform,
   ScrollView,
   View,
   type RefreshControlProps,
@@ -9,6 +10,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '../theme/ThemeProvider';
 
+/**
+ * Najwieksza sensowna szerokosc tresci w przegladarce.
+ *
+ * Aplikacja jest projektowana pod telefon. Na monitorze rozciagnieta na cale
+ * 1920 px wygladalaby fatalnie - przycisk "Rozpocznij trening" mialby dwa metry
+ * szerokosci, a wzrok musialby skakac przez pol ekranu. Ograniczamy wiec tresc
+ * i centrujemy ja, zachowujac uklad, ktory i tak jest dopracowany pod waski
+ * ekran. Na telefonie ta wartosc nie ma znaczenia, bo ekran jest wezszy.
+ */
+const MAX_CONTENT_WIDTH = 520;
+
 interface Props {
   children: React.ReactNode;
   scroll?: boolean;
@@ -17,6 +29,12 @@ interface Props {
   edgeToEdge?: boolean;
   refreshControl?: React.ReactElement<RefreshControlProps>;
 }
+
+/** Ograniczenie szerokosci stosujemy wylacznie w przegladarce. */
+const widthLimit: ViewStyle =
+  Platform.OS === 'web'
+    ? { maxWidth: MAX_CONTENT_WIDTH, width: '100%', alignSelf: 'center' }
+    : {};
 
 /** Wspolna ramka ekranu: tlo z motywu i bezpieczne marginesy. */
 export function Screen({
@@ -45,6 +63,7 @@ export function Screen({
             paddingTop: edgeToEdge ? 0 : insets.top,
             paddingBottom: insets.bottom + theme.spacing.xxxl,
           },
+          widthLimit,
           style,
         ]}
         refreshControl={refreshControl}
@@ -55,5 +74,5 @@ export function Screen({
     );
   }
 
-  return <View style={[padding, style]}>{children}</View>;
+  return <View style={[padding, widthLimit, style]}>{children}</View>;
 }
