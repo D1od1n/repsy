@@ -201,14 +201,42 @@ Android jest najprostszy — nie potrzebujesz żadnego płatnego konta.
 
 ### Wariant A: build w chmurze (zalecany, działa z Windowsa)
 
+Potrzebujesz tylko darmowego konta na [expo.dev](https://expo.dev/signup).
+
+**1. Zaloguj się:**
+
 ```bash
-npm install -g eas-cli
-eas login
-eas build --platform android --profile preview
+npx eas-cli login
+```
+
+**2. Powiąż katalog z projektem w chmurze:**
+
+```bash
+npx eas-cli init
+```
+
+Polecenie wypisze **Project ID** (długi ciąg typu `a1b2c3d4-...`). Ponieważ ten
+projekt używa konfiguracji dynamicznej (`app.config.js`), EAS nie zapisze go sam —
+wklej go do pliku `.env`:
+
+```
+EAS_PROJECT_ID=a1b2c3d4-tutaj-twoj-identyfikator
+```
+
+**3. Zbuduj APK:**
+
+```bash
+npx eas-cli build --platform android --profile preview
 ```
 
 Po kilkunastu minutach dostaniesz **link do pliku APK**. Otwórz go na telefonie,
-pozwól na instalację z nieznanych źródeł i gotowe. Ten sam link możesz wysłać znajomemu.
+pozwól na instalację z nieznanych źródeł i gotowe. Ten sam link możesz wysłać znajomemu —
+link działa też bez konta Expo.
+
+> Pierwszy build możesz zrobić z pustym `.env` (poza `EAS_PROJECT_ID`). Aplikacja
+> zadziała wtedy w trybie lokalnym: trening, cele, statystyki i streak działają,
+> nie ma tylko logowania i znajomych. To najszybszy sposób, żeby sprawdzić
+> **najważniejszą rzecz — czy licznik pompek dobrze liczy na Twoim telefonie.**
 
 ### Wariant B: build lokalny
 
