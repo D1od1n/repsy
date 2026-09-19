@@ -8,6 +8,7 @@
 import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useRouter } from 'expo-router';
 import * as AppleAuthentication from 'expo-apple-authentication';
 
 import { Button } from '../../src/components/Button';
@@ -28,10 +29,29 @@ export default function WelcomeScreen(): React.ReactElement {
   const busy = useAuthStore((state) => state.busy);
   const errorKey = useAuthStore((state) => state.errorKey);
   const clearError = useAuthStore((state) => state.clearError);
+  const router = useRouter();
 
   useEffect(() => clearError, [clearError]);
 
   const backendReady = isBackendConfigured();
+
+  /**
+   * Przejscie do kolejnego kroku powitania.
+   *
+   * NavigationGuard celowo NIE przekierowuje wewnatrz onboardingu - inaczej
+   * cofalby uzytkownika na pierwszy krok przy kazdym przejsciu dalej.
+   * Dlatego kazdy ekran powitania sam wskazuje nastepny, tak jak robia to
+   * ekrany nazwy uzytkownika i celu.
+   */
+  const goNext = (): void => {
+    const status = useAuthStore.getState().status;
+
+    // Nieudane albo anulowane logowanie zostawia stan "signed-out".
+    // Wtedy zostajemy na miejscu, zeby uzytkownik zobaczyl komunikat
+    // bledu, zamiast zostac wepchnietym dalej mimo niepowodzenia.
+    if (status === 'needs-username') router.replace('/onboarding/username');
+    else if (status === 'ready' || status === 'local-only') router.replace('/onboarding/goal');
+  };
 
   return (
     <Screen style={{ paddingHorizontal: theme.spacing.lg }}>
@@ -74,7 +94,7 @@ export default function WelcomeScreen(): React.ReactElement {
                   }
                   cornerRadius={theme.radius.full}
                   style={{ height: 56 }}
-                  onPress={() => void signInWithApple()}
+                  onPress={() => void signInWithApple().then(goNext)}
                 />
                 <View style={{ height: theme.spacing.md }} />
               </>
@@ -84,7 +104,7 @@ export default function WelcomeScreen(): React.ReactElement {
               large
               title={t('onboarding.signInGoogle')}
               loading={busy}
-              onPress={() => void signInWithGoogle()}
+              onPress={() => void signInWithGoogle().then(goNext)}
             />
 
             <View style={{ height: theme.spacing.md }} />
@@ -100,7 +120,14 @@ export default function WelcomeScreen(): React.ReactElement {
               {t('errors.supabaseNotConfigured')}
             </Text>
             <View style={{ height: theme.spacing.md }} />
-            <Button large title={t('onboarding.finish')} onPress={continueWithoutAccount} />
+            <Button
+              large
+              title={t('onboarding.finish')}
+              onPress={() => {
+                continueWithoutAccount();
+                router.replace('/onboarding/goal');
+              }}
+            />
           </>
         )}
       </View>

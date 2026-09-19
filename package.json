@@ -16,7 +16,7 @@
     "lint": "eslint . --ext .ts,.tsx",
     "make-icons": "node scripts/make-icons.mjs",
     "sync-web-assets": "node scripts/sync-web-assets.mjs",
-    "build:web": "node scripts/sync-web-assets.mjs && node scripts/make-icons.mjs && expo export --platform web --output-dir dist && node scripts/harden-web-export.mjs dist"
+    "build:web": "node scripts/sync-web-assets.mjs && node scripts/make-icons.mjs && expo export --platform web --clear --output-dir dist && node scripts/harden-web-export.mjs dist"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",

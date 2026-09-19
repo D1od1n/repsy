@@ -5,6 +5,7 @@
  * Stad ogromna liczba na gorze i minimum wszystkiego innego.
  */
 import React, { useCallback, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { RefreshControl, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -28,8 +29,8 @@ export default function HomeScreen(): React.ReactElement {
 
   const today = useAppStore((state) => state.today);
   const workouts = useAppStore((state) => state.workouts);
-  const summary = useAppStore((state) => state.todaySummary());
-  const streak = useAppStore((state) => state.streak());
+  const summary = useAppStore(useShallow((state) => state.todaySummary()));
+  const streak = useAppStore(useShallow((state) => state.streak()));
   const addManualReps = useAppStore((state) => state.addManualReps);
   const refresh = useAppStore((state) => state.refresh);
 

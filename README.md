@@ -1,8 +1,18 @@
 # Repsy — licznik pompek z kamery
 
-Aplikacja na iPhone'a i Androida, która **kamerą telefonu liczy Twoje pompki**,
-pilnuje dziennego celu, prowadzi serię dni (streak), pokazuje statystyki
-i pozwala rywalizować ze znajomymi.
+Aplikacja, która **kamerą liczy Twoje pompki**, pilnuje dziennego celu,
+prowadzi serię dni (streak), pokazuje statystyki i pozwala rywalizować
+ze znajomymi.
+
+Jest w **dwóch postaciach, z jednej bazy kodu**:
+
+| | Jak się instaluje | Dla kogo |
+|---|---|---|
+| **Strona / PWA** — [instrukcja](docs/WEB.md) | otwierasz link, opcjonalnie dodajesz do ekranu głównego | najprostsze; działa na iPhone, Androidzie i komputerze |
+| **Aplikacja mobilna** — ten plik | plik instalacyjny (Android) lub Xcode (iPhone) | gdy chcesz powiadomienia przy zamkniętej aplikacji i wibracje na iPhone |
+
+> Jeśli nie wiesz, którą wybrać — **zacznij od wersji webowej**. Nie wymaga
+> żadnego konta deweloperskiego, płatności ani Maca.
 
 > **Obraz z kamery nie opuszcza Twojego telefonu.** Analiza pozycji ciała dzieje się
 > w całości na urządzeniu. Na serwer trafiają wyłącznie liczby: ile pompek, ile serii,
@@ -12,6 +22,7 @@ i pozwala rywalizować ze znajomymi.
 
 ## Spis treści
 
+0. **[Wersja webowa / PWA — osobny dokument](docs/WEB.md)**
 1. [Co potrafi aplikacja](#co-potrafi-aplikacja)
 2. [Czego potrzebujesz](#czego-potrzebujesz)
 3. [Szybki start — 5 minut](#szybki-start--5-minut)
@@ -405,15 +416,39 @@ src/
   features/               logika ekranów (kamera, store'y, powiadomienia)
   components/ theme/ i18n/
 
-assets/models/            model MoveNet (pobierany skryptem, poza repozytorium)
+assets/models/            model MoveNet dla telefonu (pobierany skryptem)
+public/                   pliki serwowane w wersji webowej:
+                          manifest PWA, ikony, service worker, model, SQLite
 supabase/migrations/      schemat bazy + reguły bezpieczeństwa
-scripts/fetch-model.mjs   pobieranie modelu
+scripts/                  pobieranie modelu, generowanie ikon, domykanie CSP
+.github/workflows/        kontrola jakości i wdrożenie na GitHub Pages
+docs/WEB.md               instrukcja wersji webowej
 ```
 
 **Dlaczego taki podział:** wszystko, co decyduje o poprawności (liczenie pompek,
 streak, statystyki, synchronizacja), leży w `src/core/` i nie importuje ani Reacta,
 ani niczego natywnego. Dlatego testy uruchamiają się w sekundy i sprawdzają
-dokładnie ten sam kod, który potem działa na telefonie.
+dokładnie ten sam kod, który potem działa na telefonie i w przeglądarce.
+
+### Jak jedna baza kodu obsługuje dwie platformy
+
+Metro (bundler Expo) wybiera plik `nazwa.web.ts` zamiast `nazwa.ts`, gdy buduje
+wersję webową. Dzięki temu **nie ma drugiego projektu ani zduplikowanej logiki** —
+różnice sprowadzają się do siedmiu par plików:
+
+```
+usePoseDetection.tsx      / .web.tsx    kamera i model
+openDriver.ts             / .web.ts     silnik lokalnej bazy
+secureStorage.ts          / .web.ts     przechowywanie sesji
+oauthProvider.ts          / .web.ts     logowanie
+haptics.ts                / .web.ts     wibracja
+notificationService.ts    / .web.ts     przypomnienia
+invite.ts, useInviteLink  / .web.ts     zaproszenia dla znajomych
+InstallHint.tsx           / .web.tsx    dodanie do ekranu głównego
+```
+
+Wszystkie **19 ekranów**, komponenty, motywy, tłumaczenia, repozytoria,
+migracje SQL i cały algorytm są wspólne i nie wiedzą, na czym działają.
 
 ---
 

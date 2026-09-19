@@ -2,6 +2,7 @@
  * Podsumowanie po zakonczonym treningu.
  */
 import React from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -24,7 +25,7 @@ export default function WorkoutSummaryScreen(): React.ReactElement {
   const router = useRouter();
 
   const workout = useWorkoutResultStore((state) => state.result);
-  const summary = useAppStore((state) => state.todaySummary());
+  const summary = useAppStore(useShallow((state) => state.todaySummary()));
 
   if (workout === null) {
     return (

@@ -85,7 +85,7 @@ export default function UsernameScreen(): React.ReactElement {
           loading={busy}
           onPress={() => {
             void setUsername(value).then((ok) => {
-              if (ok) router.replace('/(onboarding)/goal');
+              if (ok) router.replace('/onboarding/goal');
             });
           }}
         />

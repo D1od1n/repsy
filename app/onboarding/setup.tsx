@@ -68,8 +68,14 @@ export default function OnboardingSetupScreen(): React.ReactElement {
         large
         title={t('onboarding.finish')}
         onPress={() => {
-          void setSetting('onboardingDone', true);
-          router.replace('/(tabs)');
+          // Na nawigacje czekamy, az ustawienie zostanie ZAPISANE.
+          // Inaczej powstaje wyscig: NavigationGuard widzi jeszcze
+          // onboardingDone === false, odsyla z powrotem do powitania,
+          // a po zapisie ekran wraca tutaj - i tak w kolko, az React
+          // przerwie renderowanie bledem o przekroczeniu glebokosci.
+          void setSetting('onboardingDone', true).then(() => {
+            router.replace('/');
+          });
         }}
       />
     </Screen>

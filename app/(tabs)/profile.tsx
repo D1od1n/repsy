@@ -2,6 +2,7 @@
  * Profil: kim jestem i jakie mam rekordy.
  */
 import React from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { Alert, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -24,8 +25,8 @@ export default function ProfileScreen(): React.ReactElement {
   const status = useAuthStore((state) => state.status);
   const signOut = useAuthStore((state) => state.signOut);
 
-  const streak = useAppStore((state) => state.streak());
-  const records = useAppStore((state) => state.records());
+  const streak = useAppStore(useShallow((state) => state.streak()));
+  const records = useAppStore(useShallow((state) => state.records()));
 
   const confirmSignOut = (): void => {
     Alert.alert(t('profile.signOutConfirm'), undefined, [

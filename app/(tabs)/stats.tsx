@@ -2,6 +2,7 @@
  * Statystyki: dzien / tydzien / miesiac + rekordy zyciowe.
  */
 import React, { useMemo, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
@@ -30,7 +31,7 @@ export default function StatsScreen(): React.ReactElement {
   const today = useAppStore((state) => state.today);
   const workouts = useAppStore((state) => state.workouts);
   const goalFor = useAppStore((state) => state.goalFor);
-  const streak = useAppStore((state) => state.streak());
+  const streak = useAppStore(useShallow((state) => state.streak()));
 
   const range = useMemo(() => periodRange(period, today), [period, today]);
 

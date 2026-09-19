@@ -65,8 +65,9 @@ export default function OnboardingGoalScreen(): React.ReactElement {
           large
           title={t('common.done')}
           onPress={() => {
-            void setSetting('defaultGoal', selected);
-            router.replace('/(onboarding)/setup');
+            void setSetting('defaultGoal', selected).then(() => {
+              router.replace('/onboarding/setup');
+            });
           }}
         />
       </View>

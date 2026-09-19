@@ -137,7 +137,7 @@ export default function RootLayout(): React.ReactElement {
             <NavigationGuard />
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="(onboarding)" />
+              <Stack.Screen name="onboarding" />
               <Stack.Screen name="workout" options={{ animation: 'fade' }} />
               <Stack.Screen name="settings" options={{ presentation: 'card' }} />
             </Stack>
@@ -201,15 +201,15 @@ function NavigationGuard(): null {
   useEffect(() => {
     if (status === 'loading') return;
 
-    const inOnboarding = segments[0] === '(onboarding)';
+    const inOnboarding = segments[0] === 'onboarding';
     const needsAccount = status === 'signed-out' || status === 'needs-username';
     const needsOnboarding = needsAccount || !onboardingDone;
 
     if (needsOnboarding && !inOnboarding) {
       // Kierujemy dokladnie do tego kroku, ktorego brakuje.
-      if (status === 'signed-out') router.replace('/(onboarding)');
-      else if (status === 'needs-username') router.replace('/(onboarding)/username');
-      else router.replace('/(onboarding)/goal');
+      if (status === 'signed-out') router.replace('/onboarding');
+      else if (status === 'needs-username') router.replace('/onboarding/username');
+      else router.replace('/onboarding/goal');
     } else if (!needsOnboarding && inOnboarding) {
       router.replace('/(tabs)');
     }
