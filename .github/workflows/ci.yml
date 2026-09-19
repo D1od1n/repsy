@@ -24,6 +24,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Skan sekretow przeglada cala historie, wiec potrzebuje jej w calosci.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -35,6 +38,12 @@ jobs:
       # a bez tego kazdy przebieg trwalby dluzej i zalezal od cudzego serwera.
       - name: Instalacja zaleznosci
         run: npm ci --ignore-scripts
+
+      # Pliki generowane skryptami, ktorych nie ma w repozytorium, a od ktorych
+      # zaleza testy (test prywatnosci czyta public/sw.js - ten akurat jest
+      # w repo, ale silnik bazy i ikony juz nie).
+      - name: Przygotowanie plikow generowanych
+        run: npm run sync-web-assets && npm run make-icons
 
       - name: Sprawdzenie typow
         run: npm run typecheck
@@ -58,18 +67,35 @@ jobs:
       # Ostatnia linia obrony przed wyciekiem. Skanuje CALA historie, a nie
       # tylko biezacy stan - sekret usuniety jednym commitem nadal siedzi
       # w poprzednim i jest tak samo widoczny.
+      #
+      # Szukamy WZORCOW SAMYCH SEKRETOW, a nie slow, ktore je opisuja.
+      # Pierwsza wersja tego kroku szukala napisu "service_role" i wywracala
+      # sie na wlasnej dokumentacji, ktora wyjasnia, ze tego klucza nie wolno
+      # commitowac. Kontrola, ktora zawsze swieci na czerwono, przestaje byc
+      # kontrola - po tygodniu nikt na nia nie patrzy.
       - name: Szukanie sekretow w historii
         run: |
           set -e
-          echo "Sprawdzam, czy .env nie trafil do repozytorium..."
+
+          echo "1/3  Czy plik .env trafil kiedykolwiek do repozytorium?"
           if git log --all --pretty=format: --name-only | sort -u | grep -qE '(^|/)\.env$'; then
             echo "BLAD: plik .env znajduje sie w historii repozytorium."
             exit 1
           fi
 
-          echo "Sprawdzam wzorce kluczy w tresci plikow..."
-          if git grep -nIE "service_role|-----BEGIN [A-Z ]*PRIVATE KEY|sk_live_" $(git rev-list --all) -- 2>/dev/null | head -5 | grep -q .; then
-            echo "BLAD: w historii znaleziono cos, co wyglada na sekret."
+          echo "2/3  Czy w historii sa klucze prywatne albo klucze platnosci?"
+          if git grep -IlE -- '-----BEGIN [A-Z ]*PRIVATE KEY|sk_live_[0-9A-Za-z]{10,}' $(git rev-list --all) 2>/dev/null | head -1 | grep -q .; then
+            echo "BLAD: w historii znaleziono klucz prywatny lub klucz platnosci."
+            exit 1
+          fi
+
+          # Klucze Supabase to tokeny JWT zaczynajace sie od "eyJ". Klucz anon
+          # jest jawny z zalozenia, ale i tak nie ma go po co wpisywac w kod -
+          # nalezy do konfiguracji. Dokumentacje i przeplywy pomijamy, bo tam
+          # takie napisy bywaja przykladem.
+          echo "3/3  Czy w KODZIE (nie w dokumentacji) jest token JWT?"
+          if git grep -IlE -- 'eyJ[A-Za-z0-9_-]{30,}\.[A-Za-z0-9_-]{20,}' $(git rev-list --all) -- '*.ts' '*.tsx' '*.js' '*.mjs' 2>/dev/null | grep -v 'package-lock.json' | head -1 | grep -q .; then
+            echo "BLAD: w kodzie znaleziono cos, co wyglada na token JWT."
             exit 1
           fi
 
