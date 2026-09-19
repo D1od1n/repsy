@@ -4,7 +4,7 @@
  * Otwieramy je raz i od razu wykonujemy migracje, zeby reszta aplikacji nigdy
  * nie musiala sie zastanawiac, czy schemat jest aktualny.
  */
-import { createExpoDriver } from './expoDriver';
+import { openDriver } from './openDriver';
 import type { SqlDriver } from './driver';
 import { migrate } from './migrate';
 
@@ -18,7 +18,7 @@ export async function getDatabase(): Promise<SqlDriver> {
   // bazy kilka razy naraz.
   if (opening === null) {
     opening = (async () => {
-      const db = await createExpoDriver();
+      const db = await openDriver();
       await migrate(db);
       instance = db;
       return db;

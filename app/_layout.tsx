@@ -3,7 +3,7 @@
  * miedzy onboardingiem a wlasciwa aplikacja.
  */
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, View } from 'react-native';
+import { ActivityIndicator, AppState, Text, View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -15,7 +15,7 @@ import { ThemeProvider } from '../src/theme/ThemeProvider';
 import { useAppStore } from '../src/features/store/appStore';
 import { useAuthStore } from '../src/features/auth/authStore';
 import { useSyncStore } from '../src/features/sync/syncStore';
-import { initI18n, resolveLanguage } from '../src/i18n';
+import { i18n, initI18n, resolveLanguage } from '../src/i18n';
 import {
   configureNotificationHandler,
   rescheduleReminders,
@@ -32,8 +32,28 @@ const queryClient = new QueryClient({
   },
 });
 
+/** Po tylu ms uznajemy, ze baza sie nie otworzy. */
+const DATABASE_TIMEOUT_MS = 15_000;
+
+/** Odrzuca obietnice, jesli nie rozstrzygnie sie w zadanym czasie. */
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('timeout')), ms);
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
 export default function RootLayout(): React.ReactElement {
-  const [booted, setBooted] = useState(false);
+  // Trzy stany zamiast jednej flagi: bez tego awaria bazy zostawiala
+  // uzytkownika przy wiecznie krecacym sie kolku, bez zadnej informacji.
+  const [bootState, setBootState] = useState<'loading' | 'ready' | 'failed'>('loading');
 
   const initApp = useAppStore((state) => state.init);
   const initAuth = useAuthStore((state) => state.init);
@@ -49,10 +69,25 @@ export default function RootLayout(): React.ReactElement {
       const deviceLanguages = getLocales().map((locale) => locale.languageTag);
       initI18n(resolveLanguage('system', deviceLanguages));
 
-      await initApp();
-      await initAuth();
+      try {
+        // Limit czasu jest tu istotny: gdy magazyn przegladarki jest
+        // zablokowany, otwarcie bazy potrafi nie odpowiedziec ANI bledem,
+        // ani wynikiem. Bez limitu aplikacja wisialaby w nieskonczonosc.
+        await withTimeout(initApp(), DATABASE_TIMEOUT_MS);
+      } catch {
+        if (!cancelled) setBootState('failed');
+        return;
+      }
 
-      if (!cancelled) setBooted(true);
+      // Logowanie jest opcjonalne - jego awaria (np. brak sieci) nie moze
+      // blokowac treningu, ktory dziala w pelni lokalnie.
+      try {
+        await initAuth();
+      } catch {
+        /* aplikacja dziala dalej w trybie lokalnym */
+      }
+
+      if (!cancelled) setBootState('ready');
     };
 
     void boot();
@@ -67,17 +102,28 @@ export default function RootLayout(): React.ReactElement {
     initI18n(resolveLanguage(settings.language, deviceLanguages));
   }, [settings.language]);
 
-  if (!booted) {
+  if (bootState !== 'ready') {
     return (
       <View
         style={{
           flex: 1,
           alignItems: 'center',
           justifyContent: 'center',
+          padding: 24,
           backgroundColor: LIGHT_COLORS.background,
         }}
       >
-        <ActivityIndicator />
+        {bootState === 'loading' ? (
+          <ActivityIndicator />
+        ) : (
+          // Komunikat celowo bez szczegolow technicznych - mowi, co zrobic,
+          // a nie co sie zepsulo w srodku.
+          <Text
+            style={{ color: LIGHT_COLORS.text, fontSize: 16, textAlign: 'center', lineHeight: 24 }}
+          >
+            {i18n.t('errors.storageUnavailable')}
+          </Text>
+        )}
       </View>
     );
   }

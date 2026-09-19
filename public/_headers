@@ -1,0 +1,38 @@
+# Naglowki HTTP dla hostingow, ktore je obsluguja (Cloudflare Pages, Netlify).
+#
+# GitHub Pages IGNORUJE ten plik - nie da sie tam ustawic wlasnych naglowkow.
+# Dlatego rownolegly, slabszy zestaw zabezpieczen jest w <meta> (app/+html.tsx)
+# oraz w public/frame-guard.js. Gdy wdrozysz to repozytorium na Cloudflare
+# Pages, ten plik zadziala automatycznie i dostaniesz pelna ochrone:
+# frame-ancestors, X-Frame-Options i HSTS, ktorych meta nie potrafi.
+#
+# Uwaga: connect-src ponizej trzeba dopasowac do adresu WLASNEGO projektu
+# Supabase. W wersji budowanej przez Expo dzieje sie to automatycznie
+# (app/+html.tsx czyta EXPO_PUBLIC_SUPABASE_URL), ale plik _headers jest
+# statyczny, wiec wymaga jednej recznej podmiany.
+
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' https://TWOJ-PROJEKT.supabase.co wss://TWOJ-PROJEKT.supabase.co; font-src 'self'; manifest-src 'self'; object-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(self), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+
+# Pliki z nazwa zawierajaca skrot sa niezmienne - mozna je trzymac na zawsze.
+/_expo/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Model rozpoznawania sylwetki tez sie nie zmienia.
+/models/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Sam dokument musi byc sprawdzany za kazdym razem, inaczej nowa wersja
+# aplikacji nie dotarlaby do uzytkownika.
+/index.html
+  Cache-Control: no-cache
+
+/sw.js
+  Cache-Control: no-cache

@@ -16,6 +16,59 @@ const GOOGLE_IOS_URL_SCHEME_PLACEHOLDER =
 const googleIosUrlScheme =
   process.env.GOOGLE_IOS_URL_SCHEME || GOOGLE_IOS_URL_SCHEME_PLACEHOLDER;
 
+const { existsSync, readFileSync } = require('node:fs');
+const { join } = require('node:path');
+
+/**
+ * Wczytuje .env do process.env.
+ *
+ * DLACZEGO RECZNIE, skoro Expo obsluguje .env:
+ * Expo wstawia zmienne EXPO_PUBLIC_* do KODU aplikacji, ale ten plik
+ * (app.config.js) jest wykonywany WCZESNIEJ, zanim tamten mechanizm
+ * zadziala. Bez tego czytnika `experiments.baseUrl` bylo puste i adres
+ * glownego pliku JS nie dostawal przedrostka - strona na GitHub Pages
+ * ladowala sie do bialego ekranu, mimo ze manifest i ikony mialy
+ * sciezki poprawne. Blad o tyle podstepny, ze build konczyl sie sukcesem.
+ *
+ * Zmienne ustawione w powloce maja pierwszenstwo przed plikiem.
+ */
+function loadEnvFile() {
+  const file = join(__dirname, '.env');
+  if (!existsSync(file)) return;
+
+  for (const line of readFileSync(file, 'utf8').split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (trimmed === '' || trimmed.startsWith('#')) continue;
+
+    const eq = trimmed.indexOf('=');
+    if (eq <= 0) continue;
+
+    const key = trimmed.slice(0, eq).trim();
+    if (process.env[key] !== undefined) continue;
+
+    let value = trimmed.slice(eq + 1).trim();
+    // Zdejmujemy cudzyslowy, jesli ktos otoczyl nimi wartosc.
+    if (value.length >= 2 && (value[0] === '"' || value[0] === "'") && value[value.length - 1] === value[0]) {
+      value = value.slice(1, -1);
+    }
+    process.env[key] = value;
+  }
+}
+
+loadEnvFile();
+/**
+ * Sciezka bazowa aplikacji webowej, np. "/Push-ups".
+ *
+ * Expo oczekuje wartosci BEZ koncowego ukosnika (albo pustej), wiec
+ * normalizujemy to, co poda uzytkownik - latwo tu o literowke, a skutkiem
+ * jest strona, ktora laduje sie z samymi bledami 404.
+ */
+const rawBasePath = process.env.EXPO_PUBLIC_BASE_PATH || '';
+const normalizedBasePath =
+  rawBasePath === '' || rawBasePath === '/'
+    ? ''
+    : `/${rawBasePath.replace(/^[/]+|[/]+$/g, "")}`;
+
 module.exports = {
   expo: {
     name: 'Repsy',
@@ -89,6 +142,25 @@ module.exports = {
         { color: '#FF6B35', defaultChannel: 'reminders' },
       ],
     ],
+
+    // ------------------------------------------------ wersja webowa (PWA)
+    web: {
+      // Renderowanie statyczne: kazda trasa dostaje wlasny plik HTML.
+      // Dwa powody, oba wazne dla GitHub Pages:
+      //  1. gleboki link (np. /workout) dziala bez sztuczki z 404.html,
+      //  2. tylko w tym trybie Expo Router uzywa szablonu app/+html.tsx,
+      //     a to jedyne miejsce, gdzie mozemy dodac CSP i manifest PWA.
+      output: 'static',
+      bundler: 'metro',
+    },
+
+    experiments: {
+      // Na GitHub Pages strona stoi w podkatalogu o nazwie repozytorium
+      // (np. /Push-ups/), a nie w korzeniu domeny. Bez tego wszystkie
+      // odwolania do plikow prowadzilyby do korzenia i konczyly sie 404.
+      // Pusta wartosc = strona w korzeniu (np. wlasna domena, Cloudflare).
+      baseUrl: normalizedBasePath,
+    },
 
     extra: {
       supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL || '',

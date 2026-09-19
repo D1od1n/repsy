@@ -240,6 +240,7 @@
     "signInCancelled": "Logowanie zostało przerwane.",
     "googleNotConfigured": "Logowanie Google nie jest jeszcze skonfigurowane. Uzupełnij plik .env według instrukcji w README.",
     "supabaseNotConfigured": "Backend nie jest skonfigurowany. Uzupełnij plik .env według instrukcji w README.",
-    "usernameFailed": "Nie udało się zapisać nazwy użytkownika."
+    "usernameFailed": "Nie udało się zapisać nazwy użytkownika.",
+    "storageUnavailable": "Nie udało się otworzyć lokalnej bazy danych. Sprawdź, czy przeglądarka nie blokuje danych witryn — w trybie prywatnym aplikacja może nie działać. Spróbuj odświeżyć stronę."
   }
 }

@@ -234,6 +234,7 @@
     "signInCancelled": "Sign-in was cancelled.",
     "googleNotConfigured": "Google sign-in isn't configured yet. Fill in the .env file as described in the README.",
     "supabaseNotConfigured": "The backend isn't configured. Fill in the .env file as described in the README.",
-    "usernameFailed": "Could not save your username."
+    "usernameFailed": "Could not save your username.",
+    "storageUnavailable": "The local database could not be opened. Check whether your browser is blocking site data — the app may not work in private mode. Try reloading the page."
   }
 }

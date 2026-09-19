@@ -14,7 +14,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import * as Haptics from 'expo-haptics';
+import { repFeedback } from '../../src/features/workout/haptics';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 
 import { Button } from '../../src/components/Button';
@@ -110,7 +110,7 @@ export default function WorkoutScreen(): React.ReactElement {
           setReps(sessionRef.current.totalReps);
 
           if (hapticsRef.current) {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            repFeedback();
           }
         }
 

@@ -5,7 +5,7 @@
  * Nie ma globalnej listy ani szukania obcych osob po wynikach.
  */
 import React, { useCallback, useState } from 'react';
-import { Alert, RefreshControl, Share, View } from 'react-native';
+import { Alert, RefreshControl, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
@@ -30,6 +30,7 @@ import {
 } from '../../src/data/api/friendsApi';
 import { isBackendConfigured } from '../../src/data/api/supabase';
 import { useInviteLink } from '../../src/features/friends/useInviteLink';
+import { inviteUrl, shareInvite } from '../../src/features/friends/invite';
 
 type Period = 'day' | 'week' | 'month';
 
@@ -235,14 +236,16 @@ export default function FriendsScreen(): React.ReactElement {
             title={t('friends.shareInvite')}
             onPress={() => {
               if (profile === null) return;
-              void Share.share({
-                message: t('friends.inviteMessage', {
+              void shareInvite(
+                t('friends.inviteMessage', {
                   code: profile.friendCode,
-                  // Link otworzy aplikacje u kogos, kto ja juz ma. Dlatego
-                  // w tresci zawsze jest tez kod do recznego wpisania.
-                  link: `repsy://add-friend?code=${profile.friendCode}`,
+                  // Na telefonie jest to adres repsy://, ktory otworzy
+                  // aplikacje; w przegladarce zwykly https, dzialajacy
+                  // takze u kogos, kto aplikacji jeszcze nie ma. Kod do
+                  // recznego wpisania jest w tresci tak czy inaczej.
+                  link: inviteUrl(profile.friendCode),
                 }),
-              });
+              );
             }}
           />
         </View>
