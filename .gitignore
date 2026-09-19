@@ -21,3 +21,6 @@ assets/models/*.tflite
 *.apk
 *.aab
 *.ipa
+
+# Model webowy pobierany skryptem (npm run fetch-model), ~4.6 MB
+public/models/

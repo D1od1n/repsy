@@ -11,21 +11,22 @@
  * aplikacja technicznie nie jest w stanie nic nagrac.
  * ==========================================================================
  */
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Platform } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import { Platform, StyleSheet } from 'react-native';
 import { useSharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import {
+  Camera,
   useCameraDevice,
   useCameraPermission,
   useFrameOutput,
-  type CameraFrameOutput,
 } from 'react-native-vision-camera';
 import { useResizer } from 'react-native-vision-camera-resizer';
 import { useTensorflowModel, type TensorflowModelDelegate } from 'react-native-fast-tflite';
 
 import { PushupDetector, type DetectionResult } from '../../core/pushup/detector';
 import { parseLandmarks } from '../../core/pose/types';
+import type { PoseDetectionApi, PoseStatus } from './poseTypes';
 
 /**
  * Model MoveNet SinglePose Lightning.
@@ -46,19 +47,6 @@ const PROCESS_EVERY_NTH_FRAME = 2;
 /** Niska rozdzielczosc wystarcza modelowi 192x192, a mocno odciaza pipeline. */
 const TARGET_RESOLUTION = { width: 640, height: 480 };
 
-export type PoseStatus = 'loading' | 'ready' | 'no-permission' | 'no-camera' | 'error';
-
-export interface PoseDetectionApi {
-  status: PoseStatus;
-  errorKey: string | null;
-  frameOutput: CameraFrameOutput | undefined;
-  device: ReturnType<typeof useCameraDevice>;
-  hasPermission: boolean;
-  requestPermission: () => Promise<boolean>;
-  /** Czyscic stan detektora przed nowym treningiem. */
-  reset: () => void;
-}
-
 interface Options {
   /** Gdy false, klatki sa natychmiast odrzucane (np. gdy ekran jest w tle). */
   enabled: boolean;
@@ -70,7 +58,6 @@ function delegatesForPlatform(): TensorflowModelDelegate[] {
   // Akceleracja sprzetowa: CoreML na iOS, GPU na Androidzie.
   return Platform.OS === 'ios' ? ['core-ml'] : ['android-gpu'];
 }
-
 export function usePoseDetection({ enabled, onResult }: Options): PoseDetectionApi {
   const device = useCameraDevice('front');
   const { hasPermission, requestPermission } = useCameraPermission();
@@ -208,11 +195,20 @@ export function usePoseDetection({ enabled, onResult }: Options): PoseDetectionA
           ? 'ready'
           : 'loading';
 
+  const preview =
+    device == null || frameOutput === undefined ? null : (
+      <Camera
+        style={StyleSheet.absoluteFill}
+        device={device}
+        isActive
+        outputs={[frameOutput]}
+      />
+    );
+
   return {
     status,
     errorKey,
-    frameOutput,
-    device,
+    preview,
     hasPermission,
     requestPermission,
     reset,

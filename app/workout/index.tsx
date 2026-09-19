@@ -14,7 +14,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Camera } from 'react-native-vision-camera';
 import * as Haptics from 'expo-haptics';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 
@@ -222,14 +221,12 @@ export default function WorkoutScreen(): React.ReactElement {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
-      {pose.device != null && (
-        <Camera
-          style={StyleSheet.absoluteFill}
-          device={pose.device}
-          isActive
-          outputs={pose.frameOutput === undefined ? [] : [pose.frameOutput]}
-        />
-      )}
+      {/*
+        Podglad kamery przygotowuje hook, bo rozni sie miedzy platformami:
+        na telefonie jest to natywny komponent kamery, w przegladarce element
+        <video>. Ekran nie musi o tym wiedziec.
+      */}
+      {pose.preview}
 
       {/* Przyciemnienie podgladu - liczby maja byc czytelne, nie obraz. */}
       <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.45)' }]} />

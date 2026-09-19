@@ -10,15 +10,16 @@
  * tylko funkcje spoleczne. Dzieki temu swiezo pobrany projekt da sie uruchomic
  * i przetestowac, zanim ktokolwiek zalozy konto Supabase.
  */
-import { Platform } from 'react-native';
 import { create } from 'zustand';
 import type { Session } from '@supabase/supabase-js';
-import * as AppleAuthentication from 'expo-apple-authentication';
 import {
-  GoogleSignin,
-  statusCodes,
-  isErrorWithCode,
-} from '@react-native-google-signin/google-signin';
+  isAppleSignInAvailable,
+  startAppleSignIn,
+  configureOAuth,
+  signOutFromProvider,
+  startGoogleSignIn,
+  type OAuthOutcome,
+} from './oauthProvider';
 
 import {
   GOOGLE_IOS_CLIENT_ID,
@@ -66,9 +67,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   appleAvailable: false,
 
   init: async () => {
-    const appleAvailable =
-      Platform.OS === 'ios' && (await AppleAuthentication.isAvailableAsync().catch(() => false));
-    set({ appleAvailable });
+    // Na telefonie pyta o to system, w przegladarce decyduje konfiguracja.
+    set({ appleAvailable: await isAppleSignInAvailable() });
 
     if (!isBackendConfigured()) {
       set({ status: 'local-only' });
@@ -76,10 +76,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     if (isGoogleConfigured()) {
-      GoogleSignin.configure({
-        webClientId: GOOGLE_WEB_CLIENT_ID,
-        iosClientId: GOOGLE_IOS_CLIENT_ID === '' ? undefined : GOOGLE_IOS_CLIENT_ID,
-        scopes: ['profile', 'email'],
+      configureOAuth({
+        googleWebClientId: GOOGLE_WEB_CLIENT_ID,
+        googleIosClientId: GOOGLE_IOS_CLIENT_ID,
       });
     }
 
@@ -98,88 +97,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   signInWithGoogle: async () => {
-    const supabase = getSupabase();
-    if (supabase === null) {
-      set({ errorKey: 'errors.supabaseNotConfigured' });
-      return;
-    }
     if (!isGoogleConfigured()) {
       set({ errorKey: 'errors.googleNotConfigured' });
       return;
     }
-
-    set({ busy: true, errorKey: null });
-    try {
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      const response = await GoogleSignin.signIn();
-
-      if (response.type !== 'success') {
-        set({ busy: false, errorKey: 'errors.signInCancelled' });
-        return;
-      }
-
-      const idToken = response.data.idToken;
-      if (idToken === null) {
-        set({ busy: false, errorKey: 'errors.signInFailed' });
-        return;
-      }
-
-      const { data, error } = await supabase.auth.signInWithIdToken({
-        provider: 'google',
-        token: idToken,
-      });
-      if (error !== null) throw error;
-
-      await applySession(data.session, set);
-    } catch (error) {
-      const cancelled =
-        isErrorWithCode(error) && error.code === statusCodes.SIGN_IN_CANCELLED;
-      set({ errorKey: cancelled ? 'errors.signInCancelled' : 'errors.signInFailed' });
-    } finally {
-      set({ busy: false });
-    }
+    await runSignIn(startGoogleSignIn, set);
   },
 
   signInWithApple: async () => {
-    const supabase = getSupabase();
-    if (supabase === null) {
-      set({ errorKey: 'errors.supabaseNotConfigured' });
-      return;
-    }
-
-    set({ busy: true, errorKey: null });
-    try {
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL,
-        ],
-      });
-
-      if (credential.identityToken === null) {
-        set({ errorKey: 'errors.signInFailed' });
-        return;
-      }
-
-      const { data, error } = await supabase.auth.signInWithIdToken({
-        provider: 'apple',
-        token: credential.identityToken,
-      });
-      if (error !== null) throw error;
-
-      await applySession(data.session, set);
-    } catch (error) {
-      const cancelled =
-        typeof error === 'object' &&
-        error !== null &&
-        'code' in error &&
-        (error as { code: string }).code === 'ERR_REQUEST_CANCELED';
-      set({ errorKey: cancelled ? 'errors.signInCancelled' : 'errors.signInFailed' });
-    } finally {
-      set({ busy: false });
-    }
+    await runSignIn(startAppleSignIn, set);
   },
-
   setUsername: async (username) => {
     const session = get().session;
     if (session === null) return false;
@@ -204,7 +131,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signOut: async () => {
     const supabase = getSupabase();
     if (supabase !== null) await supabase.auth.signOut();
-    if (isGoogleConfigured()) await GoogleSignin.signOut().catch(() => undefined);
+    if (isGoogleConfigured()) await signOutFromProvider();
 
     set({ session: null, profile: null, status: 'signed-out' });
   },
@@ -217,6 +144,53 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 type SetState = (partial: Partial<AuthState>) => void;
 
 /** Ustala stan na podstawie sesji: brak konta, brak nazwy, albo gotowe. */
+/**
+ * Wspolna obsluga logowania dla obu platform i obu dostawcow.
+ *
+ * Rozne platformy koncza logowanie inaczej:
+ *  - telefon zwraca token tozsamosci, ktory wymieniamy u Supabase na sesje,
+ *  - przegladarka przekierowuje uzytkownika na strone dostawcy i wraca
+ *    dopiero po zalogowaniu, juz z gotowa sesja w adresie URL.
+ *
+ * W drugim przypadku NIE zdejmujemy stanu "zajety" - strona za chwile
+ * zniknie, a migniecie odblokowanego przycisku wygladaloby jak blad.
+ */
+async function runSignIn(
+  start: () => Promise<OAuthOutcome>,
+  set: SetState,
+): Promise<void> {
+  const supabase = getSupabase();
+  if (supabase === null) {
+    set({ errorKey: 'errors.supabaseNotConfigured' });
+    return;
+  }
+
+  set({ busy: true, errorKey: null });
+  try {
+    const outcome = await start();
+
+    if (outcome.kind === 'redirected') return;
+    if (outcome.kind === 'cancelled') {
+      set({ busy: false, errorKey: 'errors.signInCancelled' });
+      return;
+    }
+    if (outcome.kind === 'failed') {
+      set({ busy: false, errorKey: 'errors.signInFailed' });
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: outcome.provider,
+      token: outcome.idToken,
+    });
+    if (error !== null) throw error;
+
+    await applySession(data.session, set);
+    set({ busy: false });
+  } catch {
+    set({ busy: false, errorKey: 'errors.signInFailed' });
+  }
+}
 async function applySession(session: Session | null, set: SetState): Promise<void> {
   if (session === null) {
     set({ session: null, profile: null, status: 'signed-out' });

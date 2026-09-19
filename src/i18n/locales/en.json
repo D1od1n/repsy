@@ -66,7 +66,9 @@
       "noCamera": "No camera found on this device.",
       "modelMissing": "The model file is missing. Run \"npm run fetch-model\" and rebuild the app.",
       "modelFailed": "Could not load the body detection model.",
-      "cameraBusy": "The camera is being used by another app. Close it and try again."
+      "cameraBusy": "The camera is being used by another app. Close it and try again.",
+      "insecureContext": "The camera works only over HTTPS. Open the page at an address starting with \"https://\".",
+      "cameraFailed": "The camera could not be started. Check whether another app is using it."
     },
     "manual": {
       "title": "Add push-ups manually",

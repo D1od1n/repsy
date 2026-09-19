@@ -72,7 +72,9 @@
       "noCamera": "Nie znaleziono kamery w tym urządzeniu.",
       "modelMissing": "Brakuje pliku modelu. Uruchom „npm run fetch-model” i zbuduj aplikację ponownie.",
       "modelFailed": "Nie udało się wczytać modelu rozpoznawania sylwetki.",
-      "cameraBusy": "Kamera jest zajęta przez inną aplikację. Zamknij ją i spróbuj ponownie."
+      "cameraBusy": "Kamera jest zajęta przez inną aplikację. Zamknij ją i spróbuj ponownie.",
+      "insecureContext": "Kamera działa tylko na połączeniu HTTPS. Otwórz stronę pod adresem zaczynającym się od „https://”.",
+      "cameraFailed": "Nie udało się uruchomić kamery. Sprawdź, czy nie używa jej inna aplikacja."
     },
     "manual": {
       "title": "Dodaj pompki ręcznie",
