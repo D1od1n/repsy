@@ -95,7 +95,13 @@ module.exports = {
       supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
       googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '',
       googleIosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '',
-      eas: { projectId: process.env.EAS_PROJECT_ID || '' },
+      // Klucz 'eas' dodajemy TYLKO wtedy, gdy projectId faktycznie istnieje.
+      // Pusty string nie jest poprawnym UUID i 'eas build' przerywa prace
+      // komunikatem o nieprawidlowym identyfikatorze, zamiast po prostu
+      // poprosic o powiazanie projektu (`eas init`).
+      ...(process.env.EAS_PROJECT_ID
+        ? { eas: { projectId: process.env.EAS_PROJECT_ID } }
+        : {}),
     },
   },
 };
