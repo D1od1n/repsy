@@ -1,0 +1,23 @@
+node_modules/
+.expo/
+dist/
+web-build/
+android/
+ios/
+*.log
+.DS_Store
+
+# Sekrety - nigdy nie trafiaja do repo
+.env
+.env.local
+
+# Model pobierany skryptem (npm run fetch-model), 4.6 MB
+assets/models/*.tflite
+
+# Wyniki sprawdzania paczki (npx expo export)
+.export-check*/
+
+# Natywne buildy
+*.apk
+*.aab
+*.ipa
