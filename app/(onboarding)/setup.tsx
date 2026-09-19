@@ -12,6 +12,7 @@ import Svg, { Circle, Line, Rect } from 'react-native-svg';
 
 import { Button } from '../../src/components/Button';
 import { Card } from '../../src/components/Card';
+import { InstallHint } from '../../src/components/InstallHint';
 import { Screen } from '../../src/components/Screen';
 import { Text } from '../../src/components/Text';
 import { useTheme } from '../../src/theme/ThemeProvider';
@@ -53,6 +54,13 @@ export default function OnboardingSetupScreen(): React.ReactElement {
           {t('onboarding.privacyNote')}
         </Text>
       </Card>
+
+      {/*
+        W przegladarce: podpowiedz, jak dodac strone do ekranu glownego.
+        W aplikacji instalowanej z pliku komponent nic nie renderuje.
+      */}
+      <View style={{ height: theme.spacing.lg }} />
+      <InstallHint />
 
       <View style={{ height: theme.spacing.xxl }} />
 

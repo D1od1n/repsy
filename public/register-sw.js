@@ -18,8 +18,8 @@
   // nawigacji, a GitHub Pages potrafi obsluzyc glebokie linki przez
   // 404.html), wiec liczenie sciezki wzgledem niego dawaloby raz dobry,
   // a raz zly wynik. Adres skryptu jest zawsze ten sam.
-  var current = document.currentScript;
-  var swUrl =
+  const current = document.currentScript;
+  const swUrl =
     current !== null && current.src !== ''
       ? new URL('sw.js', current.src).href
       : new URL('sw.js', document.baseURI).href;

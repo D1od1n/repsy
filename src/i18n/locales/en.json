@@ -57,10 +57,9 @@
     },
     "permission": {
       "title": "Camera access needed",
-      "body": "The camera is only used to count push-ups. The image is analysed on your phone and is never saved or uploaded.",
+      "body": "Camera access is used only to count your push-ups. Video is processed locally and is not uploaded or saved.",
       "grant": "Allow access",
-      "denied": "Camera access was denied. You can enable it in your system settings.",
-      "openSettings": "Open settings"
+      "denied": "Camera access was denied. You can enable it in your system settings."
     },
     "error": {
       "noCamera": "No camera found on this device.",
@@ -236,5 +235,11 @@
     "supabaseNotConfigured": "The backend isn't configured. Fill in the .env file as described in the README.",
     "usernameFailed": "Could not save your username.",
     "storageUnavailable": "The local database could not be opened. Check whether your browser is blocking site data — the app may not work in private mode. Try reloading the page."
+  },
+  "install": {
+    "title": "Add to home screen",
+    "androidBody": "Repsy will then open like a normal app — full screen, without the address bar.",
+    "iosSteps": "In Safari, tap the Share button (square with an arrow), scroll down and choose \"Add to Home Screen\". Repsy will then open full screen.",
+    "action": "Install"
   }
 }

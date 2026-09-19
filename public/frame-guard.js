@@ -26,7 +26,7 @@
 
   // Zaslaniamy tresc natychmiast, jeszcze zanim sprobujemy sie wydostac -
   // gdyby przejscie sie nie powiodlo, nie ma czego klikac.
-  var style = document.createElement('style');
+  const style = document.createElement('style');
   style.textContent = 'html{visibility:hidden!important;background:#0B0B0F!important}';
   document.documentElement.appendChild(style);
 
@@ -34,7 +34,7 @@
     // Przy obcym origin przegladarka zwykle to zablokuje - i o to chodzi,
     // bo tresc pozostaje zaslonieta.
     window.top.location = window.self.location.href;
-  } catch (error) {
+  } catch {
     // Celowo nic nie robimy: strona zostaje ukryta, co jest bezpiecznym
     // zachowaniem domyslnym.
   }

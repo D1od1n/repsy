@@ -1,0 +1,114 @@
+name: Wdrozenie na GitHub Pages
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+# Wdrozenia nie moga na siebie nachodzic, ale biezacego nie przerywamy -
+# przerwane w polowie zostawiloby strone w niespojnym stanie.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Budowanie. Ten sam zestaw kontroli co w ci.yml - wdrazamy tylko to, co
+  # przeszlo testy. Bez tego zielone CI i zepsuta produkcja moglyby wspolistniec.
+  # ---------------------------------------------------------------------------
+  budowanie:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # =========================== O TYCH ZMIENNYCH ===========================
+    # To NIE SA sekrety i celowo uzywamy `vars`, a nie `secrets`.
+    #
+    # Klucz `anon` Supabase jest publiczny Z ZALOZENIA - trafia do kodu strony,
+    # ktory kazdy moze odczytac. O tym, kto co moze przeczytac i zapisac,
+    # decyduja reguly Row Level Security w bazie, a nie tajnosc tego klucza.
+    # Trzymanie go w `secrets` sugerowaloby, ze bezpieczenstwo na nim stoi -
+    # a tak nie jest i takie zludzenie bylo by grozne.
+    #
+    # Sekretem jest natomiast klucz `service_role`, ktory NIGDY nie moze sie
+    # tu pojawic ani trafic do kodu strony.
+    #
+    # Ustawia sie je w: Settings -> Secrets and variables -> Actions ->
+    # zakladka Variables.
+    # =======================================================================
+    env:
+      EXPO_PUBLIC_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+      # Na GitHub Pages strona stoi w podkatalogu o nazwie repozytorium.
+      EXPO_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Instalacja zaleznosci
+        run: npm ci --ignore-scripts
+
+      - name: Sprawdzenie typow
+        run: npm run typecheck
+
+      - name: Lint
+        run: npx eslint .
+
+      - name: Testy
+        run: npm test
+
+      # Model rozpoznawania sylwetki nie lezy w repozytorium (9 MB plikow
+      # binarnych), wiec pobieramy go przed budowaniem.
+      - name: Pobranie modelu
+        run: npm run fetch-model
+
+      - name: Budowanie wersji webowej
+        run: npm run build:web
+
+      # Kontrola, a nie ozdobnik: bledna sciezka bazowa daje biala strone,
+      # a build i tak konczy sie sukcesem. Lepiej przerwac tutaj.
+      - name: Sprawdzenie wyniku budowania
+        run: |
+          set -e
+          BASE="/${{ github.event.repository.name }}"
+
+          test -f dist/index.html        || { echo "BRAK dist/index.html"; exit 1; }
+          test -f dist/.nojekyll         || { echo "BRAK .nojekyll - Pages pominie katalog _expo"; exit 1; }
+          test -f dist/manifest.webmanifest || { echo "BRAK manifestu PWA"; exit 1; }
+          test -f dist/sw.js             || { echo "BRAK service workera"; exit 1; }
+          test -f dist/sql/sql-wasm.wasm || { echo "BRAK silnika bazy danych"; exit 1; }
+          test -f dist/models/movenet/model.json || { echo "BRAK modelu rozpoznawania sylwetki"; exit 1; }
+
+          grep -q "$BASE/_expo/static" dist/index.html \
+            || { echo "BLAD: sciezka do kodu aplikacji nie zawiera przedrostka $BASE"; exit 1; }
+          grep -q "Content-Security-Policy" dist/index.html \
+            || { echo "BLAD: brak polityki CSP"; exit 1; }
+          grep -q "sha256-" dist/index.html \
+            || { echo "BLAD: CSP nie zawiera skrotu skryptu inline - aplikacja sie nie uruchomi"; exit 1; }
+
+          echo "Wynik budowania wyglada poprawnie."
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  wdrozenie:
+    needs: budowanie
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -63,10 +63,9 @@
     },
     "permission": {
       "title": "Potrzebny dostęp do kamery",
-      "body": "Kamera służy tylko do liczenia pompek. Obraz jest analizowany na Twoim telefonie i nigdy nie jest zapisywany ani wysyłany.",
+      "body": "Dostęp do kamery służy wyłącznie do liczenia pompek. Obraz jest analizowany lokalnie na Twoim urządzeniu i nie jest nigdzie wysyłany ani zapisywany.",
       "grant": "Zezwól na dostęp",
-      "denied": "Dostęp do kamery został odrzucony. Możesz go włączyć w ustawieniach systemowych.",
-      "openSettings": "Otwórz ustawienia"
+      "denied": "Dostęp do kamery został odrzucony. Możesz go włączyć w ustawieniach systemowych."
     },
     "error": {
       "noCamera": "Nie znaleziono kamery w tym urządzeniu.",
@@ -242,5 +241,11 @@
     "supabaseNotConfigured": "Backend nie jest skonfigurowany. Uzupełnij plik .env według instrukcji w README.",
     "usernameFailed": "Nie udało się zapisać nazwy użytkownika.",
     "storageUnavailable": "Nie udało się otworzyć lokalnej bazy danych. Sprawdź, czy przeglądarka nie blokuje danych witryn — w trybie prywatnym aplikacja może nie działać. Spróbuj odświeżyć stronę."
+  },
+  "install": {
+    "title": "Dodaj do ekranu głównego",
+    "androidBody": "Dzięki temu Repsy otworzy się jak zwykła aplikacja — na pełnym ekranie, bez paska adresu.",
+    "iosSteps": "W Safari dotknij przycisku Udostępnij (kwadrat ze strzałką w górę), przewiń w dół i wybierz „Do ekranu początkowego”. Repsy otworzy się wtedy na pełnym ekranie.",
+    "action": "Zainstaluj"
   }
 }

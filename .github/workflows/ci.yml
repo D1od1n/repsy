@@ -1,0 +1,76 @@
+name: Kontrola jakosci
+
+# Uruchamia sie przy kazdej zmianie. Celowo NIE wdraza niczego - wdrozeniem
+# zajmuje sie osobny przeplyw (deploy.yml), zeby blad w testach nie mogl
+# przypadkiem trafic na produkcje.
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+# Nowy commit anuluje poprzedni, jeszcze niedokonczony przebieg.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  sprawdzenie:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      # --ignore-scripts pomija postinstall, ktory pobieralby model (9 MB)
+      # z internetu. Do typecheck, lintu i testow model nie jest potrzebny,
+      # a bez tego kazdy przebieg trwalby dluzej i zalezal od cudzego serwera.
+      - name: Instalacja zaleznosci
+        run: npm ci --ignore-scripts
+
+      - name: Sprawdzenie typow
+        run: npm run typecheck
+
+      - name: Lint
+        run: npx eslint .
+
+      - name: Testy
+        run: npm test
+
+      # Podatnosci w zaleznosciach. Bledy o wysokiej wadze przerywaja przebieg;
+      # nizsze sa tylko wypisywane, zeby drobiazg w narzedziu deweloperskim
+      # nie blokowal pracy nad aplikacja.
+      - name: Audyt zaleznosci (wysokie)
+        run: npm audit --audit-level=high
+
+      - name: Audyt zaleznosci (pelny raport)
+        if: always()
+        run: npm audit || true
+
+      # Ostatnia linia obrony przed wyciekiem. Skanuje CALA historie, a nie
+      # tylko biezacy stan - sekret usuniety jednym commitem nadal siedzi
+      # w poprzednim i jest tak samo widoczny.
+      - name: Szukanie sekretow w historii
+        run: |
+          set -e
+          echo "Sprawdzam, czy .env nie trafil do repozytorium..."
+          if git log --all --pretty=format: --name-only | sort -u | grep -qE '(^|/)\.env$'; then
+            echo "BLAD: plik .env znajduje sie w historii repozytorium."
+            exit 1
+          fi
+
+          echo "Sprawdzam wzorce kluczy w tresci plikow..."
+          if git grep -nIE "service_role|-----BEGIN [A-Z ]*PRIVATE KEY|sk_live_" $(git rev-list --all) -- 2>/dev/null | head -5 | grep -q .; then
+            echo "BLAD: w historii znaleziono cos, co wyglada na sekret."
+            exit 1
+          fi
+
+          echo "Czysto."
