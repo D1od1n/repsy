@@ -184,7 +184,7 @@ Przepływ `deploy.yml` sam sprawdzi typy, lint i testy, zbuduje stronę
 i opublikuje ją. Adres zobaczysz w zakładce **Actions**, zwykle:
 
 ```
-https://TWOJA-NAZWA.github.io/Push-ups/
+https://d1od1n.github.io/repsy/
 ```
 
 > Po wdrożeniu **koniecznie uzupełnij adresy powrotu w Supabase** — bez tego
@@ -217,7 +217,7 @@ zepsutą stronę.
 5. W panelu Supabase: **Authentication → URL Configuration** dodaj do
    *Redirect URLs* adres swojej strony:
    ```
-   https://TWOJA-NAZWA.github.io/Push-ups/
+   https://d1od1n.github.io/repsy/
    ```
    Bez tego Supabase odrzuci powrót z logowania. To zabezpieczenie po stronie
    serwera i nie da się go obejść z poziomu przeglądarki — i dobrze.

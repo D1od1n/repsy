@@ -11,6 +11,15 @@ Jest w **dwóch postaciach, z jednej bazy kodu**:
 | **Strona / PWA** — [instrukcja](docs/WEB.md) | otwierasz link, opcjonalnie dodajesz do ekranu głównego | najprostsze; działa na iPhone, Androidzie i komputerze |
 | **Aplikacja mobilna** — ten plik | plik instalacyjny (Android) lub Xcode (iPhone) | gdy chcesz powiadomienia przy zamkniętej aplikacji i wibracje na iPhone |
 
+## 👉 Aplikacja działa tutaj
+
+**https://d1od1n.github.io/repsy/**
+
+Otwórz na telefonie i dodaj do ekranu głównego. Nie trzeba nic instalować
+ani konfigurować — trening, licznik, cele, statystyki i streak działają od razu.
+
+---
+
 > Jeśli nie wiesz, którą wybrać — **zacznij od wersji webowej**. Nie wymaga
 > żadnego konta deweloperskiego, płatności ani Maca.
 
