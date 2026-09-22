@@ -73,12 +73,39 @@ export const DEFAULT_PUSHUP_CONFIG: PushupConfig = {
   topEnter: 0.25,
   reversalDelta: 0.08,
   shallowMin: 0.4,
-  minCycleMs: 500,
+  // UWAGA: ten limit porownuje sie z ODCINKIEM MIEDZY PROGAMI (od zejscia
+  // ponizej downEnter do powrotu powyzej topEnter), a NIE z calym okresem
+  // pompki. Zmierzone na generatorze ruchu:
+  //
+  //    okres pompki 500 ms  ->  zmierzony cykl  375 ms
+  //    okres pompki 700 ms  ->  zmierzony cykl  500 ms
+  //    okres pompki 1600 ms ->  zmierzony cykl 1125 ms
+  //
+  // Czyli okolo 72% okresu. Pierwotna wartosc 500 odrzucala w praktyce
+  // wszystko szybsze niz ~0,7 s na powtorzenie - a to zupelnie normalne
+  // tempo. Uzytkownik musial zwalniac, zeby cokolwiek sie liczylo.
+  //
+  // 250 ms odpowiada pompce trwajacej ~0,35 s, czyli granicy tego, co da
+  // sie zrobic w pelnym zakresie ruchu. Drgania i szarpanina (okres 200 ms
+  // = zmierzone ~150 ms) nadal sa odrzucane, a o jakosc powtorzenia i tak
+  // dba osobno wymagana glebokosc.
+  minCycleMs: 250,
   maxCycleMs: 10_000,
   repCooldownMs: 350,
   lossTimeoutMs: 400,
   recalibrateAfterMs: 2_000,
   warningCooldownMs: 4_000,
+  // Celowo zostawione na 15. Probowalem obnizyc do 10, zeby na wolniejszym
+  // telefonie kalibracja trwala sekunde zamiast poltorej - ale wtedy
+  // algorytm potrafil skalibrowac sie W TRAKCIE RUCHU, na gornej, wolniejszej
+  // czesci pompki. Punkt odniesienia wychodzil wtedy zanizony i pierwsze
+  // powtorzenie liczylo sie bez pelnego zakresu. Wylapal to test
+  // "nie liczy powtorzen, dopoki nie ma kalibracji".
+  //
+  // Poprawnym rozwiazaniem byloby liczenie kalibracji w CZASIE, a nie
+  // w liczbie probek - wtedy wymaganie nie zalezaloby od wydajnosci
+  // telefonu. Nie robie tego teraz, bo to nie jest zglaszany problem:
+  // 1,5 s bezruchu przed startem nikomu nie przeszkadza.
   calibrationWindow: 15,
   calibrationSpread: 0.12,
   defaultDepth: 0.55,
@@ -102,6 +129,14 @@ export interface CounterState {
   calibrationSamples: number[];
   cycleStartedAt: number | null;
   cycleMaxDepth: number;
+  /**
+   * Czy kat lokcia potwierdzil dol w DOWOLNYM momencie tego cyklu.
+   *
+   * Sprawdzanie tego na biezacej probce bylo bledem: przy szybkiej pompce
+   * probka z najglebszego punktu i probka z potwierdzonym lokciem to czesto
+   * dwie rozne probki. Pamietamy wiec fakt, a nie chwile.
+   */
+  cycleElbowConfirmed: boolean;
   awaitingTop: boolean;
   lastRepAt: number | null;
   lastWarningAt: number | null;
@@ -132,6 +167,7 @@ export function createInitialState(
     calibrationSamples: [],
     cycleStartedAt: null,
     cycleMaxDepth: 0,
+    cycleElbowConfirmed: false,
     awaitingTop: false,
     lastRepAt: null,
     lastWarningAt: null,
@@ -210,9 +246,22 @@ export function step(
       state.cycleMaxDepth = Math.max(state.cycleMaxDepth, rawDepth);
       const peakProgress = state.cycleMaxDepth / state.depthRequired;
 
-      const elbowConfirms = elbowAngle === null || elbowAngle <= config.elbowBottomMax;
+      if (elbowAngle === null || elbowAngle <= config.elbowBottomMax) {
+        state.cycleElbowConfirmed = true;
+      }
 
-      if (progress >= config.bottomEnter && elbowConfirms) {
+      // Decydujemy po SZCZYCIE calego cyklu, a nie po biezacej probce.
+      //
+      // Model nadaza z okolo 10 analizami na sekunde, wiec przy szybkiej
+      // pompce (ponizej sekundy) najglebszy punkt ruchu czesto wypada
+      // MIEDZY probkami. Poprzednia wersja widziala wtedy "zawrocil, nie
+      // zszedlszy dosc nisko", kasowala cykl i pokazywala "Zejdz nizej" -
+      // mimo ze uzytkownik zszedl wystarczajaco. Zeby cokolwiek zaliczyc,
+      // trzeba bylo zwalniac.
+      //
+      // Wymagana glebokosc NIE ulega zmianie: nadal trzeba ja osiagnac.
+      // Przestajemy jedynie wymagac, zeby akurat ta probka trafila w dno.
+      if (peakProgress >= config.bottomEnter && state.cycleElbowConfirmed) {
         state.phase = 'BOTTOM';
       } else if (progress < peakProgress - config.reversalDelta) {
         // Zawrocil, zanim zszedl wystarczajaco nisko - to polpompka.
@@ -227,7 +276,15 @@ export function step(
 
     case 'BOTTOM': {
       state.cycleMaxDepth = Math.max(state.cycleMaxDepth, rawDepth);
-      if (progress <= config.bottomExit) state.phase = 'ASCENDING';
+
+      if (progress <= config.bottomExit) {
+        state.phase = 'ASCENDING';
+
+        // Przy szybkim powrocie jedna probka potrafi przeskoczyc z dolu az
+        // na gore. Bez tego sprawdzenia trzeba by czekac na nastepna, czyli
+        // tracic okolo 100 ms na kazdym powtorzeniu.
+        if (progress <= config.topEnter) completeRep(state, input.t, config, events);
+      }
       break;
     }
 
@@ -345,12 +402,14 @@ function completeRep(
   state.phase = 'TOP';
   state.cycleStartedAt = null;
   state.cycleMaxDepth = 0;
+  state.cycleElbowConfirmed = false;
 }
 
 function abortCycle(state: CounterState): void {
   state.phase = 'TOP';
   state.cycleStartedAt = null;
   state.cycleMaxDepth = 0;
+  state.cycleElbowConfirmed = false;
   state.awaitingTop = true;
 }
 

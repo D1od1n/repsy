@@ -3,7 +3,7 @@
  */
 import React from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
@@ -15,6 +15,7 @@ import { Text } from '../../src/components/Text';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { useAppStore } from '../../src/features/store/appStore';
 import { useAuthStore } from '../../src/features/auth/authStore';
+import { confirmAction } from '../../src/features/ui/dialogs';
 
 export default function ProfileScreen(): React.ReactElement {
   const theme = useTheme();
@@ -29,14 +30,14 @@ export default function ProfileScreen(): React.ReactElement {
   const records = useAppStore(useShallow((state) => state.records()));
 
   const confirmSignOut = (): void => {
-    Alert.alert(t('profile.signOutConfirm'), undefined, [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('profile.signOut'),
-        style: 'destructive',
-        onPress: () => void signOut(),
-      },
-    ]);
+    void confirmAction({
+      message: t('profile.signOutConfirm'),
+      confirmLabel: t('profile.signOut'),
+      cancelLabel: t('common.cancel'),
+      destructive: true,
+    }).then((ok) => {
+      if (ok) void signOut();
+    });
   };
 
   return (

@@ -6,12 +6,12 @@
  * prostu wpisac recznie po instalacji.
  */
 import { useCallback, useEffect } from 'react';
-import { Alert } from 'react-native';
 import * as Linking from 'expo-linking';
 import { useTranslation } from 'react-i18next';
 
 import { addFriend } from '../../data/api/friendsApi';
 import { isBackendConfigured } from '../../data/api/supabase';
+import { notify } from '../ui/dialogs';
 
 const MESSAGE_KEYS: Record<string, string> = {
   sent: 'friends.sent',
@@ -49,10 +49,10 @@ export function useInviteLink(onHandled: () => void): void {
 
       try {
         const result = await addFriend(code);
-        Alert.alert(t(MESSAGE_KEYS[result] ?? 'errors.generic'));
+        notify(t(MESSAGE_KEYS[result] ?? 'errors.generic'));
         onHandled();
       } catch {
-        Alert.alert(t('errors.network'));
+        notify(t('errors.network'));
       }
     },
     [onHandled, t],

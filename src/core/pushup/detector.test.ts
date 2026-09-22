@@ -229,3 +229,65 @@ describe('reset detektora', () => {
     expect(detector.getState().hTop).toBeNull();
   });
 });
+
+describe('szybkie tempo przy malej liczbie probek (warunki telefonu)', () => {
+  // Na telefonie model nadaza z okolo 10 analizami na sekunde, a nie 20 jak
+  // w pozostalych testach. Przy pompce trwajacej 0,7 s daje to ledwie 7 probek
+  // na caly cykl - najglebszy punkt ruchu regularnie wypada MIEDZY nimi.
+  //
+  // Te testy powstaly po zgloszeniu z prawdziwego telefonu: "zeby zaliczalo
+  // kazda, musze robic powoli".
+  const PHONE = { fps: 10 };
+
+  // Wlasny, dluzszy rozruch. Kalibracja wymaga 15 stabilnych probek, wiec
+  // przy 10 analizach na sekunde trwa 1,5 s - wspolna stala CALIBRATION
+  // (1,2 s) byla dobrana pod 20 analiz/s i tutaj po prostu nie zdazylaby.
+  // To artefakt zestawu testowego, a nie badane zachowanie: sprawdzamy
+  // tempo powtorzen, a nie dlugosc kalibracji.
+  const SLOW_START: Segment = { kind: 'hold', durationMs: 2500 };
+
+  it('zalicza szybkie pompki (0,7 s) przy 10 analizach na sekunde', () => {
+    const segments: Segment[] = [SLOW_START];
+    for (let i = 0; i < 10; i += 1) segments.push(rep(FULL, 700));
+
+    const { reps } = run(segments, PHONE);
+    expect(reps).toBe(10);
+  });
+
+  // Zmierzona granica tempa wobec liczby analiz na sekunde (okres 0,5 s):
+  //
+  //    30 analiz/s -> 15 probek na cykl -> komplet
+  //    24 analiz/s -> 12 probek na cykl -> komplet
+  //    16 analiz/s ->  8 probek na cykl -> gubi pojedyncze powtorzenia
+  //    10 analiz/s ->  5 probek na cykl -> filtr zjada amplitude ruchu
+  //
+  // To nie jest usterka do naprawienia progami, tylko wlasciwosc
+  // probkowania: z pieciu probek nie da sie wiarygodnie odtworzyc
+  // przebiegu ruchu. Obnizanie progow zeby to obejsc zepsuloby
+  // odrzucanie polpompek. Wlasciwa dzwignia to szybszy model.
+  it('zalicza bardzo szybkie pompki (0,5 s), gdy telefon nadaza z 24 analizami/s', () => {
+    const segments: Segment[] = [SLOW_START];
+    for (let i = 0; i < 8; i += 1) segments.push(rep(FULL, 500));
+
+    const { reps } = run(segments, { fps: 24 });
+    expect(reps).toBe(8);
+  });
+
+  it('NADAL odrzuca polpompki w tym samym tempie', () => {
+    // Najwazniejszy test tej grupy: poprawka ma usuwac wplyw probkowania,
+    // a nie obnizac wymagana glebokosc.
+    const segments: Segment[] = [SLOW_START];
+    for (let i = 0; i < 6; i += 1) segments.push(rep(HALF, 700));
+
+    const { reps } = run(segments, PHONE);
+    expect(reps).toBe(0);
+  });
+
+  it('nie zalicza szarpaniny szybszej niz fizycznie mozliwa', () => {
+    const segments: Segment[] = [SLOW_START];
+    for (let i = 0; i < 10; i += 1) segments.push(rep(FULL, 200));
+
+    const { reps } = run(segments, PHONE);
+    expect(reps).toBe(0);
+  });
+});

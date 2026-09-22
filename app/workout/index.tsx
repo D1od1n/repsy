@@ -11,10 +11,11 @@
  * z podlogi, przez ulamek sekundy. Liczy sie wielka liczba i jeden komunikat.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { repFeedback } from '../../src/features/workout/haptics';
+import { confirmAction } from '../../src/features/ui/dialogs';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 
 import { Button } from '../../src/components/Button';
@@ -189,10 +190,14 @@ export default function WorkoutScreen(): React.ReactElement {
       return;
     }
 
-    Alert.alert(t('workout.finishConfirm'), undefined, [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('workout.finish'), style: 'destructive', onPress: () => void finish() },
-    ]);
+    void confirmAction({
+      message: t('workout.finishConfirm'),
+      confirmLabel: t('workout.finish'),
+      cancelLabel: t('common.cancel'),
+      destructive: true,
+    }).then((ok) => {
+      if (ok) void finish();
+    });
   };
 
   // ------------------------------------------------------- stany brzegowe

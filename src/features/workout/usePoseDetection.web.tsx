@@ -35,14 +35,23 @@ interface Options {
 }
 
 /**
- * Ile razy na sekunde analizujemy obraz.
+ * Gorny limit analiz na sekunde.
  *
- * Wersja telefonowa bierze co druga klatke z 30 fps, czyli ~15 analiz/s.
- * Trzymamy sie tej samej liczby, zeby algorytm dostawal probki w tym samym
- * tempie - progi czasowe w maszynie stanow byly strojone wlasnie przy nim.
+ * WAZNE: to jest SUFIT, a nie cel. Na telefonie wąskim gardłem jest sam
+ * model (kazda analiza trwa okolo 100 ms), wiec realnie wychodzi ~10/s
+ * i ten limit nigdy sie nie wlacza. Ma znaczenie tylko na mocnym
+ * komputerze, gdzie bez niego petla kręciłaby sie po 60 razy na sekunde
+ * i grzala procesor bez zadnego pozytku.
+ *
+ * Pierwotnie bylo tu 15/s "dla zgodnosci z wersja telefonowa". To byl blad:
+ * telefon i tak nie osiagal tej wartosci, a limit odbieral kilka procent
+ * probek tam, gdzie kazda jest na wage zlota. Liczba probek na powtorzenie
+ * decyduje o tym, jak szybko mozna cwiczyc - przy 5 probkach na cykl
+ * (pompka ponizej 0,6 s przy wolnym telefonie) filtr wygladzajacy zaczyna
+ * zjadac amplitude ruchu i powtorzenie przepada.
  */
-const ANALYSES_PER_SECOND = 15;
-const MIN_INTERVAL_MS = 1000 / ANALYSES_PER_SECOND;
+const MAX_ANALYSES_PER_SECOND = 30;
+const MIN_INTERVAL_MS = 1000 / MAX_ANALYSES_PER_SECOND;
 
 /** Niska rozdzielczosc wystarcza modelowi 192x192, a mocno odciaza pipeline. */
 const VIDEO_CONSTRAINTS: MediaTrackConstraints = {

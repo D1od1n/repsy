@@ -5,7 +5,7 @@
  * Nie ma globalnej listy ani szukania obcych osob po wynikach.
  */
 import React, { useCallback, useState } from 'react';
-import { Alert, RefreshControl, View } from 'react-native';
+import { RefreshControl, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
@@ -31,6 +31,7 @@ import {
 import { isBackendConfigured } from '../../src/data/api/supabase';
 import { useInviteLink } from '../../src/features/friends/useInviteLink';
 import { inviteUrl, shareInvite } from '../../src/features/friends/invite';
+import { confirmAction, notify } from '../../src/features/ui/dialogs';
 
 type Period = 'day' | 'week' | 'month';
 
@@ -227,7 +228,7 @@ export default function FriendsScreen(): React.ReactElement {
             onPress={() => {
               if (profile === null) return;
               void Clipboard.setStringAsync(profile.friendCode);
-              Alert.alert(t('friends.codeCopied'));
+              notify(t('friends.codeCopied'));
             }}
           />
           <Button
@@ -265,20 +266,14 @@ export default function FriendsScreen(): React.ReactElement {
                 title={`${friend.avatarEmoji} ${friend.username}`}
                 last={index === all.length - 1}
                 onPress={() => {
-                  Alert.alert(
-                    t('friends.removeConfirm', { username: friend.username }),
-                    undefined,
-                    [
-                      { text: t('common.cancel'), style: 'cancel' },
-                      {
-                        text: t('friends.remove'),
-                        style: 'destructive',
-                        onPress: () => {
-                          void removeFriend(friend.id).then(refreshAll);
-                        },
-                      },
-                    ],
-                  );
+                  void confirmAction({
+                    message: t('friends.removeConfirm', { username: friend.username }),
+                    confirmLabel: t('friends.remove'),
+                    cancelLabel: t('common.cancel'),
+                    destructive: true,
+                  }).then((ok) => {
+                    if (ok) void removeFriend(friend.id).then(refreshAll);
+                  });
                 }}
               />
             ))}
