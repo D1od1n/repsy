@@ -145,16 +145,27 @@ describe('StatTile', () => {
 });
 
 describe('ManualRepsModal', () => {
-  it('nie pozwala zapisac pustej wartosci', async () => {
+  // UWAGA na ksztalt tego testu.
+  //
+  // Pierwotnie probowal KLIKNAC przycisk "Dodaj" przy pustym polu
+  // i sprawdzic, ze nic sie nie stalo. Przycisk jest wtedy wylaczony
+  // (Pressable disabled), a symulowanie klikniecia w wylaczony element
+  // potrafilo w RNTL zawiesic test: na CI konczyl sie limitem 5 s,
+  // lokalnie zwykle zdazyl. Objaw wygladal na niestabilnosc losowa.
+  //
+  // Teraz sprawdzamy wlasciwa gwarancje: przycisk JEST nieaktywny.
+  // To jest to, co widzi uzytkownik i czytnik ekranu - i czego nie da
+  // sie obejsc. Sciezke "poprawna wartosc przechodzi" pokrywa test nizej,
+  // wiec razem opisuja pelne zachowanie walidacji.
+  it('blokuje przycisk zapisu przy pustym polu', async () => {
     const onSubmit = jest.fn();
-    const { getByText } = await renderWithTheme(
+    const { getByRole } = await renderWithTheme(
       <ManualRepsModal visible onClose={jest.fn()} onSubmit={onSubmit} />,
     );
 
-    // fireEvent w RNTL 14 jest asynchroniczne. Bez await niedokonczona
-    // obietnica przeciekala do kolejnego testu i ten test potrafil paść
-    // losowo - mniej wiecej raz na kilkanascie przebiegow.
-    await fireEvent.press(getByText('Dodaj'));
+    const addButton = getByRole('button', { name: 'Dodaj' });
+
+    expect(addButton.props.accessibilityState?.disabled).toBe(true);
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
