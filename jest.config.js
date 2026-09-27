@@ -38,6 +38,14 @@ module.exports = {
     },
     {
       displayName: 'app',
+      // Domyslne 5 s Jesta jest pomyslane pod testy jednostkowe. Pierwszy
+      // render komponentu React Native z Modal potrafi na zimnym runnerze CI
+      // przekroczyc ten limit, mimo ze lokalnie trwa ulamek sekundy.
+      //
+      // Objawialo sie to jako "losowo niestabilny" test - zawsze pierwszy
+      // w pliku, niezaleznie od tego, co sprawdzal. Dwie proby naprawy
+      // szukaly bledu w samym tescie, a problemem byl limit czasu.
+      testTimeout: 30_000,
       preset: 'jest-expo',
       testMatch: ['<rootDir>/src/**/*.test.tsx', '<rootDir>/app/**/*.test.tsx'],
       moduleNameMapper: { '^@/(.*)$': '<rootDir>/src/$1' },
