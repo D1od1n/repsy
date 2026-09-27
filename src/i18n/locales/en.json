@@ -67,7 +67,8 @@
       "modelFailed": "Could not load the body detection model.",
       "cameraBusy": "The camera is being used by another app. Close it and try again.",
       "insecureContext": "The camera works only over HTTPS. Open the page at an address starting with \"https://\".",
-      "cameraFailed": "The camera could not be started. Check whether another app is using it."
+      "cameraFailed": "The camera could not be started. Check whether another app is using it.",
+      "saveFailed": "The workout could not be saved. Your reps are not lost — try finishing again."
     },
     "manual": {
       "title": "Add push-ups manually",

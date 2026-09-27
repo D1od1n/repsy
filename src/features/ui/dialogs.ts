@@ -11,33 +11,22 @@
  * okno potwierdzenia nigdy sie nie pojawialo, wiec nie dalo sie zakonczyc
  * sesji. Zglosil to uzytkownik z telefonu.
  *
- * Tutaj uzywamy natywnego Alertu, a w dialogs.web.ts - okien przegladarki.
+ * Zostalo tu tylko `notify` - krotka informacja bez wyboru, gdzie milczace
+ * pominiecie nie jest grozne. Pytania tak/nie obsluguje ConfirmDialog.
  */
 import { Alert } from 'react-native';
-
-export interface ConfirmOptions {
-  message: string;
-  confirmLabel: string;
-  cancelLabel: string;
-  /** Czy akcja jest nieodwracalna - wplywa na wyglad przycisku na iOS. */
-  destructive?: boolean;
-}
 
 /** Krotka informacja bez wyboru. */
 export function notify(message: string): void {
   Alert.alert(message);
 }
 
-/** Pytanie tak/nie. Zwraca true, gdy uzytkownik potwierdzil. */
-export function confirmAction(options: ConfirmOptions): Promise<boolean> {
-  return new Promise((resolve) => {
-    Alert.alert(options.message, undefined, [
-      { text: options.cancelLabel, style: 'cancel', onPress: () => resolve(false) },
-      {
-        text: options.confirmLabel,
-        style: options.destructive === true ? 'destructive' : 'default',
-        onPress: () => resolve(true),
-      },
-    ]);
-  });
-}
+
+// Potwierdzen (pytan tak/nie) tu NIE MA i nie powinno byc.
+//
+// Byly - najpierw na Alert z react-native-web (martwa atrapa), potem na
+// window.confirm (bywa tlumione bez mozliwosci wykrycia). Obie wersje
+// konczyly sie tym samym zgloszeniem: "przycisk nie dziala".
+//
+// Potwierdzenia robi teraz components/ConfirmDialog - zwykly komponent,
+// ktory wyglada tak samo na obu platformach i daje sie przetestowac.

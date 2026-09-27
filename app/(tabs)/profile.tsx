@@ -1,7 +1,7 @@
 /**
  * Profil: kim jestem i jakie mam rekordy.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -15,7 +15,7 @@ import { Text } from '../../src/components/Text';
 import { useTheme } from '../../src/theme/ThemeProvider';
 import { useAppStore } from '../../src/features/store/appStore';
 import { useAuthStore } from '../../src/features/auth/authStore';
-import { confirmAction } from '../../src/features/ui/dialogs';
+import { ConfirmDialog } from '../../src/components/ConfirmDialog';
 
 export default function ProfileScreen(): React.ReactElement {
   const theme = useTheme();
@@ -29,16 +29,9 @@ export default function ProfileScreen(): React.ReactElement {
   const streak = useAppStore(useShallow((state) => state.streak()));
   const records = useAppStore(useShallow((state) => state.records()));
 
-  const confirmSignOut = (): void => {
-    void confirmAction({
-      message: t('profile.signOutConfirm'),
-      confirmLabel: t('profile.signOut'),
-      cancelLabel: t('common.cancel'),
-      destructive: true,
-    }).then((ok) => {
-      if (ok) void signOut();
-    });
-  };
+  const [signOutOpen, setSignOutOpen] = useState(false);
+
+  const confirmSignOut = (): void => setSignOutOpen(true);
 
   return (
     <Screen scroll style={{ paddingHorizontal: theme.spacing.lg }}>
@@ -124,6 +117,18 @@ export default function ProfileScreen(): React.ReactElement {
           {t('errors.supabaseNotConfigured')}
         </Text>
       )}
+      <ConfirmDialog
+        visible={signOutOpen}
+        message={t('profile.signOutConfirm')}
+        confirmLabel={t('profile.signOut')}
+        cancelLabel={t('common.cancel')}
+        destructive
+        onConfirm={() => {
+          setSignOutOpen(false);
+          void signOut();
+        }}
+        onCancel={() => setSignOutOpen(false)}
+      />
     </Screen>
   );
 }

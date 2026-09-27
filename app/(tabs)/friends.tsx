@@ -31,7 +31,8 @@ import {
 import { isBackendConfigured } from '../../src/data/api/supabase';
 import { useInviteLink } from '../../src/features/friends/useInviteLink';
 import { inviteUrl, shareInvite } from '../../src/features/friends/invite';
-import { confirmAction, notify } from '../../src/features/ui/dialogs';
+import { notify } from '../../src/features/ui/dialogs';
+import { ConfirmDialog } from '../../src/components/ConfirmDialog';
 
 type Period = 'day' | 'week' | 'month';
 
@@ -42,6 +43,8 @@ export default function FriendsScreen(): React.ReactElement {
 
   const [period, setPeriod] = useState<Period>('day');
   const [addOpen, setAddOpen] = useState(false);
+  /** Znajomy wskazany do usuniecia - null gdy okno jest zamkniete. */
+  const [removing, setRemoving] = useState<{ id: string; username: string } | null>(null);
 
   const today = useAppStore((state) => state.today);
   const profile = useAuthStore((state) => state.profile);
@@ -266,14 +269,7 @@ export default function FriendsScreen(): React.ReactElement {
                 title={`${friend.avatarEmoji} ${friend.username}`}
                 last={index === all.length - 1}
                 onPress={() => {
-                  void confirmAction({
-                    message: t('friends.removeConfirm', { username: friend.username }),
-                    confirmLabel: t('friends.remove'),
-                    cancelLabel: t('common.cancel'),
-                    destructive: true,
-                  }).then((ok) => {
-                    if (ok) void removeFriend(friend.id).then(refreshAll);
-                  });
+                  setRemoving({ id: friend.id, username: friend.username });
                 }}
               />
             ))}
@@ -281,6 +277,19 @@ export default function FriendsScreen(): React.ReactElement {
         </>
       )}
 
+      <ConfirmDialog
+        visible={removing !== null}
+        message={t('friends.removeConfirm', { username: removing?.username ?? '' })}
+        confirmLabel={t('friends.remove')}
+        cancelLabel={t('common.cancel')}
+        destructive
+        onConfirm={() => {
+          const target = removing;
+          setRemoving(null);
+          if (target !== null) void removeFriend(target.id).then(refreshAll);
+        }}
+        onCancel={() => setRemoving(null)}
+      />
       <AddFriendModal
         visible={addOpen}
         onClose={() => setAddOpen(false)}

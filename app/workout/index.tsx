@@ -15,7 +15,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { repFeedback } from '../../src/features/workout/haptics';
-import { confirmAction } from '../../src/features/ui/dialogs';
+import { ConfirmDialog } from '../../src/components/ConfirmDialog';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 
 import { Button } from '../../src/components/Button';
@@ -52,6 +52,9 @@ export default function WorkoutScreen(): React.ReactElement {
   // powinien powodowac przerysowania calego ekranu.
   const sessionRef = useRef<SessionState | null>(null);
   const [counting, setCounting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  /** Klucz komunikatu, gdy zapis treningu sie nie powiedzie. */
+  const [finishErrorKey, setFinishErrorKey] = useState<string | null>(null);
 
   const [reps, setReps] = useState(0);
   const [phase, setPhase] = useState<string>('NO_POSE');
@@ -179,25 +182,31 @@ export default function WorkoutScreen(): React.ReactElement {
       return;
     }
 
-    await saveWorkout(workout);
+    // Bez tego try/catch bled zapisu byl POLYKANY: finish() jest wolane
+    // przez `void finish()`, wiec odrzucona obietnica nigdzie nie trafiala.
+    // Dla uzytkownika wygladalo to tak, jakby przycisk byl martwy - zadnego
+    // komunikatu, zadnej reakcji. Teraz awaria jest widoczna, a licznik
+    // zostaje nietkniety, wiec da sie sprobowac ponownie bez utraty wyniku.
+    try {
+      await saveWorkout(workout);
+    } catch {
+      setFinishErrorKey('workout.error.saveFailed');
+      return;
+    }
+
     setLastResult(workout);
     router.replace('/workout/summary');
   }, [router, saveWorkout, setLastResult]);
 
   const confirmFinish = (): void => {
+    setFinishErrorKey(null);
+
+    // Bez ani jednego powtorzenia nie ma czego potwierdzac ani co zapisac.
     if (reps === 0) {
       void finish();
       return;
     }
-
-    void confirmAction({
-      message: t('workout.finishConfirm'),
-      confirmLabel: t('workout.finish'),
-      cancelLabel: t('common.cancel'),
-      destructive: true,
-    }).then((ok) => {
-      if (ok) void finish();
-    });
+    setConfirmOpen(true);
   };
 
   // ------------------------------------------------------- stany brzegowe
@@ -280,6 +289,28 @@ export default function WorkoutScreen(): React.ReactElement {
 
           {/* ---------------------------------------------- dol */}
           <View style={{ minHeight: 140, justifyContent: 'flex-end' }}>
+            {/*
+              Awaria zapisu treningu. Pokazujemy ja w tym samym miejscu co
+              podpowiedzi, ale w kolorze ostrzegawczym - bo to jedyny moment,
+              w ktorym uzytkownik moglby stracic policzone powtorzenia.
+            */}
+            {finishErrorKey !== null && (
+              <View
+                style={{
+                  backgroundColor: theme.colors.danger,
+                  paddingVertical: theme.spacing.md,
+                  paddingHorizontal: theme.spacing.base,
+                  borderRadius: theme.radius.lg,
+                  alignItems: 'center',
+                  marginBottom: theme.spacing.base,
+                }}
+              >
+                <Text variant="callout" style={{ color: '#FFFFFF' }} align="center">
+                  {t(finishErrorKey)}
+                </Text>
+              </View>
+            )}
+
             {messageKey !== null && (
               <View
                 style={{
@@ -322,6 +353,18 @@ export default function WorkoutScreen(): React.ReactElement {
           </View>
         </View>
       </Screen>
+      <ConfirmDialog
+        visible={confirmOpen}
+        message={t('workout.finishConfirm')}
+        confirmLabel={t('workout.finish')}
+        cancelLabel={t('common.cancel')}
+        destructive
+        onConfirm={() => {
+          setConfirmOpen(false);
+          void finish();
+        }}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </View>
   );
 }

@@ -73,7 +73,8 @@
       "modelFailed": "Nie udało się wczytać modelu rozpoznawania sylwetki.",
       "cameraBusy": "Kamera jest zajęta przez inną aplikację. Zamknij ją i spróbuj ponownie.",
       "insecureContext": "Kamera działa tylko na połączeniu HTTPS. Otwórz stronę pod adresem zaczynającym się od „https://”.",
-      "cameraFailed": "Nie udało się uruchomić kamery. Sprawdź, czy nie używa jej inna aplikacja."
+      "cameraFailed": "Nie udało się uruchomić kamery. Sprawdź, czy nie używa jej inna aplikacja.",
+      "saveFailed": "Nie udało się zapisać treningu. Twoje powtórzenia nie przepadły — spróbuj zakończyć jeszcze raz."
     },
     "manual": {
       "title": "Dodaj pompki ręcznie",

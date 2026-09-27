@@ -13,6 +13,7 @@ import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 
 import { Button } from './Button';
+import { ConfirmDialog } from './ConfirmDialog';
 import { ManualRepsModal } from './ManualRepsModal';
 import { ProgressBar } from './ProgressBar';
 import { SegmentedControl } from './SegmentedControl';
@@ -57,7 +58,7 @@ describe('Button', () => {
     const onPress = jest.fn();
     const { getByText } = await renderWithTheme(<Button title="Start" onPress={onPress} />);
 
-    fireEvent.press(getByText('Start'));
+    await fireEvent.press(getByText('Start'));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
@@ -67,7 +68,7 @@ describe('Button', () => {
       <Button title="Start" onPress={onPress} disabled />,
     );
 
-    fireEvent.press(getByText('Start'));
+    await fireEvent.press(getByText('Start'));
     expect(onPress).not.toHaveBeenCalled();
   });
 
@@ -111,7 +112,7 @@ describe('SegmentedControl', () => {
       />,
     );
 
-    fireEvent.press(getByText('Miesiac'));
+    await fireEvent.press(getByText('Miesiac'));
     expect(onChange).toHaveBeenCalledWith('month');
   });
 
@@ -150,7 +151,10 @@ describe('ManualRepsModal', () => {
       <ManualRepsModal visible onClose={jest.fn()} onSubmit={onSubmit} />,
     );
 
-    fireEvent.press(getByText('Dodaj'));
+    // fireEvent w RNTL 14 jest asynchroniczne. Bez await niedokonczona
+    // obietnica przeciekala do kolejnego testu i ten test potrafil paść
+    // losowo - mniej wiecej raz na kilkanascie przebiegow.
+    await fireEvent.press(getByText('Dodaj'));
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
@@ -189,5 +193,63 @@ describe('motyw jasny i ciemny', () => {
   it('ciemny motyw uzywa jasnego tekstu', async () => {
     const { getByText } = await renderWithTheme(<Text>Repsy</Text>, 'dark');
     expect(flattenStyle(getByText('Repsy').props.style).color).toBe(DARK_COLORS.text);
+  });
+});
+
+describe('ConfirmDialog', () => {
+  // Komponent powstal po zgloszeniu "przycisk zakoncz trening nie dziala".
+  // Poprzednie dwie proby opieraly sie na oknach systemowych - najpierw na
+  // martwej atrapie Alert z react-native-web, potem na window.confirm, ktore
+  // bywa tlumione bez mozliwosci wykrycia. To okno jest zwyklym komponentem,
+  // wiec da sie je sprawdzic testem - i wlasnie o to chodzi.
+
+  const labels = {
+    message: 'Zakonczyc trening?',
+    confirmLabel: 'Zakoncz',
+    cancelLabel: 'Anuluj',
+  };
+
+  it('pokazuje pytanie i oba przyciski, gdy jest widoczne', async () => {
+    const { getByText } = await renderWithTheme(
+      <ConfirmDialog visible {...labels} onConfirm={jest.fn()} onCancel={jest.fn()} />,
+    );
+
+    expect(getByText(labels.message)).toBeTruthy();
+    expect(getByText(labels.confirmLabel)).toBeTruthy();
+    expect(getByText(labels.cancelLabel)).toBeTruthy();
+  });
+
+  it('wywoluje onConfirm po potwierdzeniu', async () => {
+    const onConfirm = jest.fn();
+    const onCancel = jest.fn();
+    const { getByText } = await renderWithTheme(
+      <ConfirmDialog visible {...labels} onConfirm={onConfirm} onCancel={onCancel} />,
+    );
+
+    await fireEvent.press(getByText(labels.confirmLabel));
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  it('wywoluje onCancel po anulowaniu', async () => {
+    const onConfirm = jest.fn();
+    const onCancel = jest.fn();
+    const { getByText } = await renderWithTheme(
+      <ConfirmDialog visible {...labels} onConfirm={onConfirm} onCancel={onCancel} />,
+    );
+
+    await fireEvent.press(getByText(labels.cancelLabel));
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it('nic nie pokazuje, gdy nie jest widoczne', async () => {
+    const { queryByText } = await renderWithTheme(
+      <ConfirmDialog visible={false} {...labels} onConfirm={jest.fn()} onCancel={jest.fn()} />,
+    );
+
+    expect(queryByText(labels.message)).toBeNull();
   });
 });
